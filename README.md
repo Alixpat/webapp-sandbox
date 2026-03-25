@@ -22,9 +22,28 @@ python app.py
 
 ## Deploy on Render.com
 
-1. Push this repo to GitHub.
-2. Go to [Render Dashboard](https://dashboard.render.com) and create a **PostgreSQL** database.
-3. Create a **New > Web Service**, connect your GitHub repo.
-4. Render auto-detects the `Dockerfile`.
-5. Add the env var `DATABASE_URL` with the **Internal Database URL** from your Render PostgreSQL instance.
-6. Click **Deploy**.
+### 1. Create the PostgreSQL database
+
+Go to [Render Dashboard](https://dashboard.render.com) and click **New > PostgreSQL**. Fill in:
+
+| Field | Value |
+|---|---|
+| **Name** | `hellodb` |
+| **Database** | `hellodb` |
+| **User** | `hello` |
+| **Region** | Same as your Web Service (e.g. Frankfurt EU) |
+| **Plan** | Free |
+
+Once created, copy the **Internal Database URL** from the database info page.
+
+### 2. Create the Web Service
+
+1. Click **New > Web Service** and connect your GitHub repo.
+2. Render auto-detects the `Dockerfile`.
+3. Add the following environment variable:
+
+   | Key | Value |
+   |---|---|
+   | `DATABASE_URL` | *The Internal Database URL copied above* |
+
+4. Click **Deploy**.
