@@ -1,73 +1,78 @@
 {% extends "base.html" %}
 {% block title %}{{ project.name }} - Budget Manager{% endblock %}
 {% block content %}
-<div class="page-header">
-    <div>
-        <h1>{{ project.name }}</h1>
-        <p class="meta" style="margin-top: 0.3rem;">{{ project.description }}</p>
+<div class="fr-grid-row fr-grid-row--gutters fr-grid-row--middle fr-mb-3w">
+    <div class="fr-col">
+        <h1 class="fr-h3 fr-mb-1v">{{ project.name }}</h1>
+        <p class="fr-text--sm fr-text--alt fr-mb-0">{{ project.description }}</p>
         {% if current_user.is_supervisor %}
-            <span class="owner-tag" style="margin-top: 0.5rem;">Propriétaire : {{ project.owner.name }}</span>
+            <p class="fr-mt-1w fr-mb-0"><span class="fr-tag">Propriétaire : {{ project.owner.name }}</span></p>
         {% endif %}
     </div>
     {% if not current_user.is_supervisor %}
-        <a href="{{ url_for('budget_line_new', project_id=project.id) }}" class="btn btn-primary">+ Ligne budgétaire</a>
+    <div class="fr-col-auto">
+        <a href="{{ url_for('budget_line_new', project_id=project.id) }}" class="fr-btn fr-icon-add-line fr-btn--icon-left">Ligne budgétaire</a>
+    </div>
     {% endif %}
 </div>
 
-<div class="total-bar">
-    <span>Budget total du projet</span>
+<div class="budget-total-tile">
+    <span class="fr-text--lg fr-mb-0">Budget total du projet</span>
     <span class="total-amount">{{ "{:,.2f}".format(project.total_amount).replace(",", " ") }} &euro;</span>
 </div>
 
 {% if budget_lines %}
-<div class="card" style="padding: 0; overflow: hidden;">
+<div class="fr-table">
     <table>
         <thead>
             <tr>
-                <th>Libellé</th>
-                <th>Montant</th>
-                <th>Justification</th>
-                <th>Pièces jointes</th>
-                <th>Date</th>
+                <th scope="col">Libellé</th>
+                <th scope="col">Montant</th>
+                <th scope="col">Justification</th>
+                <th scope="col">Pièces jointes</th>
+                <th scope="col">Date</th>
             </tr>
         </thead>
         <tbody>
             {% for bl in budget_lines %}
             <tr>
                 <td><strong>{{ bl.label }}</strong></td>
-                <td class="amount">{{ "{:,.2f}".format(bl.amount).replace(",", " ") }} &euro;</td>
-                <td style="max-width: 300px; font-size: 0.9rem; color: #555;">{{ bl.justification }}</td>
+                <td><strong>{{ "{:,.2f}".format(bl.amount).replace(",", " ") }} &euro;</strong></td>
+                <td class="fr-text--sm">{{ bl.justification }}</td>
                 <td>
                     {% if bl.attachments %}
-                    <ul class="attachment-list">
+                    <ul class="fr-tags-group">
                         {% for att in bl.attachments %}
-                        <li><a href="{{ url_for('uploaded_file', filename=att.filename) }}" target="_blank">{{ att.original_name }}</a></li>
+                        <li>
+                            <a href="{{ url_for('uploaded_file', filename=att.filename) }}" target="_blank" class="fr-tag fr-tag--sm fr-icon-attachment-line fr-tag--icon-left">{{ att.original_name }}</a>
+                        </li>
                         {% endfor %}
                     </ul>
                     {% else %}
-                    <span style="color: #aaa; font-size: 0.85rem;">Aucune</span>
+                    <span class="fr-text--sm fr-text--alt">Aucune</span>
                     {% endif %}
                 </td>
-                <td style="font-size: 0.85rem; color: #888;">{{ bl.created_at.strftime('%d/%m/%Y') }}</td>
+                <td class="fr-text--sm">{{ bl.created_at.strftime('%d/%m/%Y') }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
 {% else %}
-<div class="card" style="text-align: center; padding: 3rem;">
-    <p style="color: #888; margin-bottom: 1rem;">Aucune ligne budgétaire pour ce projet.</p>
+<div class="fr-callout">
+    <h3 class="fr-callout__title">Aucune ligne budgétaire</h3>
+    <p class="fr-callout__text">Ce projet ne contient pas encore de ligne budgétaire.</p>
     {% if not current_user.is_supervisor %}
-        <a href="{{ url_for('budget_line_new', project_id=project.id) }}" class="btn btn-primary">Ajouter une ligne budgétaire</a>
+        <a href="{{ url_for('budget_line_new', project_id=project.id) }}" class="fr-btn">Ajouter une ligne budgétaire</a>
     {% endif %}
 </div>
 {% endif %}
 
-<div style="margin-top: 1.5rem;">
+<div class="fr-mt-4w">
     {% if current_user.is_supervisor %}
-        <a href="{{ url_for('supervisor_dashboard') }}" class="btn btn-secondary">&larr; Retour au tableau de bord</a>
+        <a href="{{ url_for('supervisor_dashboard') }}" class="fr-btn fr-btn--secondary fr-icon-arrow-left-line fr-btn--icon-left">Retour au tableau de bord</a>
     {% else %}
-        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">&larr; Retour aux projets</a>
+        <a href="{{ url_for('dashboard') }}" class="fr-btn fr-btn--secondary fr-icon-arrow-left-line fr-btn--icon-left">Retour aux projets</a>
     {% endif %}
 </div>
 {% endblock %}

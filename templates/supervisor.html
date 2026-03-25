@@ -1,45 +1,56 @@
 {% extends "base.html" %}
 {% block title %}Supervision - Budget Manager{% endblock %}
 {% block content %}
-<div class="page-header">
-    <h1>Tableau de bord superviseur</h1>
-</div>
+<h1 class="fr-h3 fr-mb-3w">Tableau de bord superviseur</h1>
 
-<div class="total-bar">
+<div class="budget-total-tile">
     <div>
-        <div style="font-size: 0.9rem; opacity: 0.8;">Budget global tous projets</div>
-        <div class="total-amount">{{ "{:,.2f}".format(total).replace(",", " ") }} &euro;</div>
+        <p class="fr-text--sm fr-mb-1v" style="opacity: 0.8;">Budget global tous projets</p>
+        <span class="total-amount">{{ "{:,.2f}".format(total).replace(",", " ") }} &euro;</span>
     </div>
     <div style="text-align: right;">
-        <div style="font-size: 2rem; font-weight: 700;">{{ projects|length }}</div>
-        <div style="font-size: 0.85rem; opacity: 0.8;">projet{{ 's' if projects|length != 1 else '' }}</div>
+        <p style="font-size: 2rem; font-weight: 700; margin: 0;">{{ projects|length }}</p>
+        <p class="fr-text--sm fr-mb-0" style="opacity: 0.8;">projet{{ 's' if projects|length != 1 else '' }}</p>
     </div>
 </div>
 
 {% if projects %}
-    {% for project in projects %}
-    <a href="{{ url_for('project_detail', project_id=project.id) }}" style="text-decoration: none; color: inherit;">
-        <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                <div>
-                    <h3>{{ project.name }}</h3>
-                    <p class="meta">{{ project.description[:120] }}{% if project.description|length > 120 %}...{% endif %}</p>
-                    <p class="meta">
-                        <span class="owner-tag">{{ project.owner.name }}</span>
-                        &middot; {{ project.budget_lines|length }} ligne{{ 's' if project.budget_lines|length != 1 else '' }}
-                        &middot; Créé le {{ project.created_at.strftime('%d/%m/%Y') }}
-                    </p>
-                </div>
-                <div style="text-align: right;">
-                    <span class="amount" style="font-size: 1.3rem;">{{ "{:,.2f}".format(project.total_amount).replace(",", " ") }} &euro;</span>
+    <div class="fr-grid-row fr-grid-row--gutters">
+        {% for project in projects %}
+        <div class="fr-col-12">
+            <div class="fr-card fr-card--horizontal fr-enlarge-link">
+                <div class="fr-card__body">
+                    <div class="fr-card__content">
+                        <h3 class="fr-card__title">
+                            <a href="{{ url_for('project_detail', project_id=project.id) }}">{{ project.name }}</a>
+                        </h3>
+                        <p class="fr-card__desc">{{ project.description[:120] }}{% if project.description|length > 120 %}...{% endif %}</p>
+                        <div class="fr-card__start">
+                            <ul class="fr-badges-group">
+                                <li>
+                                    <p class="fr-badge fr-badge--blue-ecume fr-badge--sm fr-badge--no-icon">{{ "{:,.2f}".format(project.total_amount).replace(",", " ") }} &euro;</p>
+                                </li>
+                                <li>
+                                    <p class="fr-badge fr-badge--green-emeraude fr-badge--sm fr-badge--no-icon">{{ project.owner.name }}</p>
+                                </li>
+                                <li>
+                                    <p class="fr-badge fr-badge--sm fr-badge--no-icon">{{ project.budget_lines|length }} ligne{{ 's' if project.budget_lines|length != 1 else '' }}</p>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="fr-card__end">
+                            <p class="fr-card__detail fr-icon-calendar-line">Créé le {{ project.created_at.strftime('%d/%m/%Y') }}</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </a>
-    {% endfor %}
+        {% endfor %}
+    </div>
 {% else %}
-    <div class="card" style="text-align: center; padding: 3rem;">
-        <p style="color: #888;">Aucun projet pour le moment.</p>
+    <div class="fr-callout">
+        <h3 class="fr-callout__title">Aucun projet</h3>
+        <p class="fr-callout__text">Aucun projet pour le moment.</p>
     </div>
 {% endif %}
 {% endblock %}
