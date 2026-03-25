@@ -1,25 +1,25 @@
 {% extends "base.html" %}
 {% block title %}Connexion - Budget Manager{% endblock %}
 {% block content %}
-<div style="max-width: 400px; margin: 4rem auto;">
-    <div class="card" style="padding: 2rem;">
-        <h2 style="text-align: center; margin-bottom: 1.5rem;">Connexion</h2>
+<div class="fr-grid-row fr-grid-row--center">
+    <div class="fr-col-12 fr-col-md-6 fr-col-lg-4">
+        <h1 class="fr-h3 fr-mb-3w" style="text-align: center;">Connexion</h1>
         <form method="POST">
-            <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" id="email" name="email" required placeholder="votre@email.com">
+            <div class="fr-input-group">
+                <label class="fr-label" for="email">Email</label>
+                <input class="fr-input" type="email" id="email" name="email" required placeholder="votre@email.com">
             </div>
-            <div class="form-group">
-                <label for="password">Mot de passe</label>
-                <input type="password" id="password" name="password" required>
+            <div class="fr-input-group">
+                <label class="fr-label" for="password">Mot de passe</label>
+                <input class="fr-input" type="password" id="password" name="password" required>
             </div>
-            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">Se connecter</button>
+            <button type="submit" class="fr-btn fr-btn--lg" style="width: 100%;">Se connecter</button>
         </form>
-        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #e5e7eb; font-size: 0.82rem; color: #888;">
-            <p><strong>Comptes de démonstration :</strong></p>
-            <p>alice@example.com / alice123 (utilisateur)</p>
-            <p>bob@example.com / bob123 (utilisateur)</p>
-            <p>admin@example.com / admin123 (superviseur)</p>
+        <div class="fr-callout fr-callout--brown-caramel fr-mt-3w">
+            <p class="fr-callout__title fr-text--sm">Comptes de démonstration</p>
+            <p class="fr-text--sm fr-mb-0">alice@example.com / alice123 (utilisateur)<br>
+            bob@example.com / bob123 (utilisateur)<br>
+            admin@example.com / admin123 (superviseur)</p>
         </div>
     </div>
 </div>

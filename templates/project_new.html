@@ -1,21 +1,21 @@
 {% extends "base.html" %}
 {% block title %}Nouveau projet - Budget Manager{% endblock %}
 {% block content %}
-<div style="max-width: 600px;">
-    <h1 style="margin-bottom: 1.5rem;">Nouveau projet</h1>
-    <div class="card" style="padding: 1.5rem;">
+<div class="fr-grid-row fr-grid-row--center">
+    <div class="fr-col-12 fr-col-md-8 fr-col-lg-6">
+        <h1 class="fr-h3 fr-mb-3w">Nouveau projet</h1>
         <form method="POST">
-            <div class="form-group">
-                <label for="name">Nom du projet</label>
-                <input type="text" id="name" name="name" required placeholder="Ex: Refonte du site web">
+            <div class="fr-input-group">
+                <label class="fr-label" for="name">Nom du projet</label>
+                <input class="fr-input" type="text" id="name" name="name" required placeholder="Ex: Refonte du site web">
             </div>
-            <div class="form-group">
-                <label for="description">Description</label>
-                <textarea id="description" name="description" placeholder="Décrivez brièvement le projet..."></textarea>
+            <div class="fr-input-group">
+                <label class="fr-label" for="description">Description</label>
+                <textarea class="fr-input" id="description" name="description" rows="4" placeholder="Décrivez brièvement le projet..."></textarea>
             </div>
-            <div style="display: flex; gap: 0.8rem;">
-                <button type="submit" class="btn btn-success">Créer le projet</button>
-                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Annuler</a>
+            <div class="fr-btns-group fr-btns-group--inline">
+                <button type="submit" class="fr-btn">Créer le projet</button>
+                <a href="{{ url_for('dashboard') }}" class="fr-btn fr-btn--secondary">Annuler</a>
             </div>
         </form>
     </div>
