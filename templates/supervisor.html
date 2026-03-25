@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Supervision - Budget Manager{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>Tableau de bord superviseur</h1>
+</div>
+
+<div class="total-bar">
+    <div>
+        <div style="font-size: 0.9rem; opacity: 0.8;">Budget global tous projets</div>
+        <div class="total-amount">{{ "{:,.2f}".format(total).replace(",", " ") }} &euro;</div>
+    </div>
+    <div style="text-align: right;">
+        <div style="font-size: 2rem; font-weight: 700;">{{ projects|length }}</div>
+        <div style="font-size: 0.85rem; opacity: 0.8;">projet{{ 's' if projects|length != 1 else '' }}</div>
+    </div>
+</div>
+
+{% if projects %}
+    {% for project in projects %}
+    <a href="{{ url_for('project_detail', project_id=project.id) }}" style="text-decoration: none; color: inherit;">
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <h3>{{ project.name }}</h3>
+                    <p class="meta">{{ project.description[:120] }}{% if project.description|length > 120 %}...{% endif %}</p>
+                    <p class="meta">
+                        <span class="owner-tag">{{ project.owner.name }}</span>
+                        &middot; {{ project.budget_lines|length }} ligne{{ 's' if project.budget_lines|length != 1 else '' }}
+                        &middot; Créé le {{ project.created_at.strftime('%d/%m/%Y') }}
+                    </p>
+                </div>
+                <div style="text-align: right;">
+                    <span class="amount" style="font-size: 1.3rem;">{{ "{:,.2f}".format(project.total_amount).replace(",", " ") }} &euro;</span>
+                </div>
+            </div>
+        </div>
+    </a>
+    {% endfor %}
+{% else %}
+    <div class="card" style="text-align: center; padding: 3rem;">
+        <p style="color: #888;">Aucun projet pour le moment.</p>
+    </div>
+{% endif %}
+{% endblock %}
