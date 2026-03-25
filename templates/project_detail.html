@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}{{ project.name }} - Budget Manager{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{{ project.name }}</h1>
+        <p class="meta" style="margin-top: 0.3rem;">{{ project.description }}</p>
+        {% if current_user.is_supervisor %}
+            <span class="owner-tag" style="margin-top: 0.5rem;">Propriétaire : {{ project.owner.name }}</span>
+        {% endif %}
+    </div>
+    {% if not current_user.is_supervisor %}
+        <a href="{{ url_for('budget_line_new', project_id=project.id) }}" class="btn btn-primary">+ Ligne budgétaire</a>
+    {% endif %}
+</div>
+
+<div class="total-bar">
+    <span>Budget total du projet</span>
+    <span class="total-amount">{{ "{:,.2f}".format(project.total_amount).replace(",", " ") }} &euro;</span>
+</div>
+
+{% if budget_lines %}
+<div class="card" style="padding: 0; overflow: hidden;">
+    <table>
+        <thead>
+            <tr>
+                <th>Libellé</th>
+                <th>Montant</th>
+                <th>Justification</th>
+                <th>Pièces jointes</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for bl in budget_lines %}
+            <tr>
+                <td><strong>{{ bl.label }}</strong></td>
+                <td class="amount">{{ "{:,.2f}".format(bl.amount).replace(",", " ") }} &euro;</td>
+                <td style="max-width: 300px; font-size: 0.9rem; color: #555;">{{ bl.justification }}</td>
+                <td>
+                    {% if bl.attachments %}
+                    <ul class="attachment-list">
+                        {% for att in bl.attachments %}
+                        <li><a href="{{ url_for('uploaded_file', filename=att.filename) }}" target="_blank">{{ att.original_name }}</a></li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <span style="color: #aaa; font-size: 0.85rem;">Aucune</span>
+                    {% endif %}
+                </td>
+                <td style="font-size: 0.85rem; color: #888;">{{ bl.created_at.strftime('%d/%m/%Y') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card" style="text-align: center; padding: 3rem;">
+    <p style="color: #888; margin-bottom: 1rem;">Aucune ligne budgétaire pour ce projet.</p>
+    {% if not current_user.is_supervisor %}
+        <a href="{{ url_for('budget_line_new', project_id=project.id) }}" class="btn btn-primary">Ajouter une ligne budgétaire</a>
+    {% endif %}
+</div>
+{% endif %}
+
+<div style="margin-top: 1.5rem;">
+    {% if current_user.is_supervisor %}
+        <a href="{{ url_for('supervisor_dashboard') }}" class="btn btn-secondary">&larr; Retour au tableau de bord</a>
+    {% else %}
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">&larr; Retour aux projets</a>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,49 +1,37 @@
-# webapp-sandbox
+# Budget Manager
 
-A minimal Flask "Hello World" app with PostgreSQL, ready to deploy on Render.com.
+Application web de gestion budgétaire construite avec Flask et PostgreSQL.
 
-## Run locally with Docker Compose
+## Fonctionnalités
+
+- **Utilisateurs** : créer des projets, ajouter des lignes budgétaires avec justifications et pièces jointes
+- **Superviseur** : vue globale de tous les projets et du montant total
+
+## Modèle de données
+
+- **User** : utilisateurs avec rôle (`user` ou `supervisor`)
+- **Project** : projets rattachés à un utilisateur
+- **BudgetLine** : lignes budgétaires (libellé, montant, justification) rattachées à un projet
+- **Attachment** : pièces jointes rattachées à une ligne budgétaire
+
+## Lancer avec Docker Compose
 
 ```bash
 docker compose up --build
 ```
 
-Open http://localhost:10000
+Ouvrir http://localhost:10000
 
-## Run locally without Docker
+## Comptes de démonstration
 
-Requires a running PostgreSQL instance. Set the `DATABASE_URL` env var:
+| Email | Mot de passe | Rôle |
+|---|---|---|
+| alice@example.com | alice123 | Utilisateur |
+| bob@example.com | bob123 | Utilisateur |
+| admin@example.com | admin123 | Superviseur |
 
-```bash
-export DATABASE_URL=postgresql://hello:hello@localhost:5432/hellodb
-pip install -r requirements.txt
-python app.py
-```
+## Données fictives injectées
 
-## Deploy on Render.com
-
-### 1. Create the PostgreSQL database
-
-Go to [Render Dashboard](https://dashboard.render.com) and click **New > PostgreSQL**. Fill in:
-
-| Field | Value |
-|---|---|
-| **Name** | `hellodb` |
-| **Database** | `hellodb` |
-| **User** | `hello` |
-| **Region** | Same as your Web Service (e.g. Frankfurt EU) |
-| **Plan** | Free |
-
-Once created, copy the **Internal Database URL** from the database info page.
-
-### 2. Create the Web Service
-
-1. Click **New > Web Service** and connect your GitHub repo.
-2. Render auto-detects the `Dockerfile`.
-3. Add the following environment variable:
-
-   | Key | Value |
-   |---|---|
-   | `DATABASE_URL` | *The Internal Database URL copied above* |
-
-4. Click **Deploy**.
+- **Alice** : 2 projets (Refonte site web, Formation Data Science) avec lignes budgétaires
+- **Bob** : 1 projet (Migration ERP) avec lignes budgétaires
+- **Sophie** (superviseur) : accès en lecture à tous les projets

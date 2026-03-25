@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Mes projets - Budget Manager{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>Mes projets</h1>
+    <a href="{{ url_for('project_new') }}" class="btn btn-primary">+ Nouveau projet</a>
+</div>
+
+{% if projects %}
+    {% for project in projects %}
+    <a href="{{ url_for('project_detail', project_id=project.id) }}" style="text-decoration: none; color: inherit;">
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <h3>{{ project.name }}</h3>
+                    <p class="meta">{{ project.description[:120] }}{% if project.description|length > 120 %}...{% endif %}</p>
+                    <p class="meta">Créé le {{ project.created_at.strftime('%d/%m/%Y') }} &middot; {{ project.budget_lines|length }} ligne{{ 's' if project.budget_lines|length != 1 else '' }} budgétaire{{ 's' if project.budget_lines|length != 1 else '' }}</p>
+                </div>
+                <div style="text-align: right;">
+                    <span class="amount" style="font-size: 1.3rem;">{{ "{:,.2f}".format(project.total_amount).replace(",", " ") }} &euro;</span>
+                </div>
+            </div>
+        </div>
+    </a>
+    {% endfor %}
+{% else %}
+    <div class="card" style="text-align: center; padding: 3rem;">
+        <p style="color: #888; margin-bottom: 1rem;">Vous n'avez pas encore de projet.</p>
+        <a href="{{ url_for('project_new') }}" class="btn btn-primary">Créer mon premier projet</a>
+    </div>
+{% endif %}
+{% endblock %}
