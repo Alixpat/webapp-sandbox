@@ -9,11 +9,14 @@
             <p class="fr-mt-1w fr-mb-0"><span class="fr-tag">Propriétaire : {{ project.owner.name }}</span></p>
         {% endif %}
     </div>
-    {% if not current_user.is_supervisor %}
     <div class="fr-col-auto">
+        {% if not current_user.is_supervisor %}
         <a href="{{ url_for('budget_line_new', project_id=project.id) }}" class="fr-btn fr-icon-add-line fr-btn--icon-left">Ligne budgétaire</a>
+        {% endif %}
+        {% if budget_lines %}
+        <a href="{{ url_for('export_project', project_id=project.id) }}" class="fr-btn fr-btn--secondary fr-icon-download-line fr-btn--icon-left">Exporter Excel</a>
+        {% endif %}
     </div>
-    {% endif %}
 </div>
 
 <div class="budget-total-tile">

@@ -1,7 +1,16 @@
 {% extends "base.html" %}
 {% block title %}Supervision - Budget Manager{% endblock %}
 {% block content %}
-<h1 class="fr-h3 fr-mb-3w">Tableau de bord superviseur</h1>
+<div class="fr-grid-row fr-grid-row--gutters fr-grid-row--middle fr-mb-3w">
+    <div class="fr-col">
+        <h1 class="fr-h3 fr-mb-0">Tableau de bord superviseur</h1>
+    </div>
+    {% if projects %}
+    <div class="fr-col-auto">
+        <a href="{{ url_for('export_supervisor') }}" class="fr-btn fr-btn--secondary fr-icon-download-line fr-btn--icon-left">Exporter Excel</a>
+    </div>
+    {% endif %}
+</div>
 
 <div class="budget-total-tile">
     <div>

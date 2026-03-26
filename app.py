@@ -1,3 +1,4 @@
+import io
 import os
 import uuid
 from datetime import datetime, timezone
@@ -8,9 +9,12 @@ from flask import (
     redirect,
     render_template,
     request,
+    send_file,
     send_from_directory,
     url_for,
 )
+from openpyxl import Workbook
+from openpyxl.styles import Alignment, Font, PatternFill
 from flask_login import (
     LoginManager,
     UserMixin,
@@ -284,6 +288,119 @@ def supervisor_dashboard():
     projects = Project.query.order_by(Project.created_at.desc()).all()
     total = sum(p.total_amount for p in projects)
     return render_template("supervisor.html", projects=projects, total=total)
+
+
+# ---------------------------------------------------------------------------
+# Excel export
+# ---------------------------------------------------------------------------
+
+def _style_header(ws, col_count):
+    header_font = Font(bold=True, color="FFFFFF", size=11)
+    header_fill = PatternFill(start_color="000091", end_color="000091", fill_type="solid")
+    for col in range(1, col_count + 1):
+        cell = ws.cell(row=1, column=col)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+
+
+@app.route("/projects/<int:project_id>/export")
+@login_required
+def export_project(project_id):
+    project = db.session.get(Project, project_id)
+    if not project:
+        flash("Projet introuvable.", "danger")
+        return redirect(url_for("dashboard"))
+    if not current_user.is_supervisor and project.user_id != current_user.id:
+        flash("Accès non autorisé.", "danger")
+        return redirect(url_for("dashboard"))
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Lignes budgétaires"
+
+    headers = ["Libellé", "Montant (€)", "Justification", "Pièces jointes", "Date"]
+    ws.append(headers)
+    _style_header(ws, len(headers))
+
+    budget_lines = BudgetLine.query.filter_by(project_id=project.id).order_by(BudgetLine.created_at.desc()).all()
+    for bl in budget_lines:
+        attachments = ", ".join(att.original_name for att in bl.attachments)
+        ws.append([bl.label, bl.amount, bl.justification, attachments, bl.created_at.strftime("%d/%m/%Y")])
+
+    # Total row
+    total_row = len(budget_lines) + 2
+    ws.cell(row=total_row, column=1, value="TOTAL").font = Font(bold=True)
+    ws.cell(row=total_row, column=2, value=project.total_amount).font = Font(bold=True)
+
+    # Column widths
+    ws.column_dimensions["A"].width = 30
+    ws.column_dimensions["B"].width = 15
+    ws.column_dimensions["C"].width = 50
+    ws.column_dimensions["D"].width = 30
+    ws.column_dimensions["E"].width = 12
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    filename = f"budget_{project.name.replace(' ', '_')}.xlsx"
+    return send_file(buf, download_name=filename, as_attachment=True,
+                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+
+@app.route("/supervisor/export")
+@login_required
+def export_supervisor():
+    if not current_user.is_supervisor:
+        flash("Accès réservé aux superviseurs.", "danger")
+        return redirect(url_for("dashboard"))
+
+    projects = Project.query.order_by(Project.created_at.desc()).all()
+
+    wb = Workbook()
+
+    # Sheet 1: Summary
+    ws_summary = wb.active
+    ws_summary.title = "Synthèse"
+    headers = ["Projet", "Propriétaire", "Nb lignes", "Budget total (€)", "Date de création"]
+    ws_summary.append(headers)
+    _style_header(ws_summary, len(headers))
+
+    for p in projects:
+        ws_summary.append([p.name, p.owner.name, len(p.budget_lines), p.total_amount, p.created_at.strftime("%d/%m/%Y")])
+
+    total_row = len(projects) + 2
+    ws_summary.cell(row=total_row, column=1, value="TOTAL").font = Font(bold=True)
+    ws_summary.cell(row=total_row, column=4, value=sum(p.total_amount for p in projects)).font = Font(bold=True)
+
+    ws_summary.column_dimensions["A"].width = 30
+    ws_summary.column_dimensions["B"].width = 20
+    ws_summary.column_dimensions["C"].width = 12
+    ws_summary.column_dimensions["D"].width = 18
+    ws_summary.column_dimensions["E"].width = 15
+
+    # Sheet 2: All budget lines
+    ws_detail = wb.create_sheet("Détail lignes budgétaires")
+    detail_headers = ["Projet", "Propriétaire", "Libellé", "Montant (€)", "Justification", "Date"]
+    ws_detail.append(detail_headers)
+    _style_header(ws_detail, len(detail_headers))
+
+    for p in projects:
+        for bl in p.budget_lines:
+            ws_detail.append([p.name, p.owner.name, bl.label, bl.amount, bl.justification, bl.created_at.strftime("%d/%m/%Y")])
+
+    ws_detail.column_dimensions["A"].width = 25
+    ws_detail.column_dimensions["B"].width = 20
+    ws_detail.column_dimensions["C"].width = 30
+    ws_detail.column_dimensions["D"].width = 15
+    ws_detail.column_dimensions["E"].width = 50
+    ws_detail.column_dimensions["F"].width = 12
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return send_file(buf, download_name="budget_global.xlsx", as_attachment=True,
+                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 
 # ---------------------------------------------------------------------------
