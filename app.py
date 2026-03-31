@@ -73,22 +73,35 @@ class Project(db.Model):
     description = db.Column(db.Text, default="")
     created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    budget_lines = db.relationship("BudgetLine", backref="project", lazy=True, cascade="all, delete-orphan")
+    budget_needs = db.relationship("BudgetNeedExpression", backref="project", lazy=True, cascade="all, delete-orphan")
 
     @property
     def total_amount(self):
-        return sum(bl.amount for bl in self.budget_lines)
+        return sum(bn.total_amount for bn in self.budget_needs)
+
+    @property
+    def total_mco(self):
+        return sum(bn.amount_mco for bn in self.budget_needs)
+
+    @property
+    def total_investment(self):
+        return sum(bn.amount_investment for bn in self.budget_needs)
 
 
-class BudgetLine(db.Model):
-    __tablename__ = "budget_lines"
+class BudgetNeedExpression(db.Model):
+    __tablename__ = "budget_need_expressions"
     id = db.Column(db.Integer, primary_key=True)
     label = db.Column(db.String(200), nullable=False)
-    amount = db.Column(db.Float, nullable=False)
+    amount_mco = db.Column(db.Float, nullable=False, default=0)
+    amount_investment = db.Column(db.Float, nullable=False, default=0)
     justification = db.Column(db.Text, default="")
     created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=False)
-    attachments = db.relationship("Attachment", backref="budget_line", lazy=True, cascade="all, delete-orphan")
+    attachments = db.relationship("Attachment", backref="budget_need", lazy=True, cascade="all, delete-orphan")
+
+    @property
+    def total_amount(self):
+        return self.amount_mco + self.amount_investment
 
 
 class Attachment(db.Model):
@@ -97,7 +110,7 @@ class Attachment(db.Model):
     filename = db.Column(db.String(256), nullable=False)
     original_name = db.Column(db.String(256), nullable=False)
     uploaded_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
-    budget_line_id = db.Column(db.Integer, db.ForeignKey("budget_lines.id"), nullable=False)
+    budget_need_id = db.Column(db.Integer, db.ForeignKey("budget_need_expressions.id"), nullable=False)
 
 
 @login_manager.user_loader
@@ -129,17 +142,17 @@ def seed_data():
     db.session.add_all([p1, p2])
     db.session.flush()
 
-    # Budget lines for project 1
+    # Budget needs for project 1
     db.session.add_all([
-        BudgetLine(label="Design UX/UI", amount=15000, justification="Prestation agence de design pour maquettes et prototypes interactifs.", project_id=p1.id),
-        BudgetLine(label="Développement front-end", amount=25000, justification="Développement React.js par un prestataire externe sur 3 mois.", project_id=p1.id),
-        BudgetLine(label="Hébergement cloud", amount=4800, justification="Abonnement AWS pour 12 mois (EC2 + RDS + S3).", project_id=p1.id),
+        BudgetNeedExpression(label="Design UX/UI", amount_mco=0, amount_investment=15000, justification="Prestation agence de design pour maquettes et prototypes interactifs.", project_id=p1.id),
+        BudgetNeedExpression(label="Développement front-end", amount_mco=0, amount_investment=25000, justification="Développement React.js par un prestataire externe sur 3 mois.", project_id=p1.id),
+        BudgetNeedExpression(label="Hébergement cloud", amount_mco=4800, amount_investment=0, justification="Abonnement AWS pour 12 mois (EC2 + RDS + S3).", project_id=p1.id),
     ])
 
-    # Budget lines for project 2
+    # Budget needs for project 2
     db.session.add_all([
-        BudgetLine(label="Licence plateforme e-learning", amount=3000, justification="Abonnement annuel DataCamp Team pour 10 utilisateurs.", project_id=p2.id),
-        BudgetLine(label="Intervenant externe", amount=8000, justification="2 jours de formation en présentiel par un expert Machine Learning.", project_id=p2.id),
+        BudgetNeedExpression(label="Licence plateforme e-learning", amount_mco=3000, amount_investment=0, justification="Abonnement annuel DataCamp Team pour 10 utilisateurs.", project_id=p2.id),
+        BudgetNeedExpression(label="Intervenant externe", amount_mco=0, amount_investment=8000, justification="2 jours de formation en présentiel par un expert Machine Learning.", project_id=p2.id),
     ])
 
     # Project for Bob
@@ -148,9 +161,9 @@ def seed_data():
     db.session.flush()
 
     db.session.add_all([
-        BudgetLine(label="Audit technique", amount=12000, justification="Audit complet de l'existant par un cabinet de conseil.", project_id=p3.id),
-        BudgetLine(label="Licence ERP SaaS", amount=36000, justification="Abonnement annuel Odoo Enterprise pour 25 utilisateurs.", project_id=p3.id),
-        BudgetLine(label="Conduite du changement", amount=5000, justification="Accompagnement des équipes et documentation utilisateur.", project_id=p3.id),
+        BudgetNeedExpression(label="Audit technique", amount_mco=0, amount_investment=12000, justification="Audit complet de l'existant par un cabinet de conseil.", project_id=p3.id),
+        BudgetNeedExpression(label="Licence ERP SaaS", amount_mco=36000, amount_investment=0, justification="Abonnement annuel Odoo Enterprise pour 25 utilisateurs.", project_id=p3.id),
+        BudgetNeedExpression(label="Conduite du changement", amount_mco=0, amount_investment=5000, justification="Accompagnement des équipes et documentation utilisateur.", project_id=p3.id),
     ])
 
     db.session.commit()
@@ -228,31 +241,36 @@ def project_detail(project_id):
     if not current_user.is_supervisor and project.user_id != current_user.id:
         flash("Accès non autorisé.", "danger")
         return redirect(url_for("dashboard"))
-    budget_lines = BudgetLine.query.filter_by(project_id=project.id).order_by(BudgetLine.created_at.desc()).all()
-    return render_template("project_detail.html", project=project, budget_lines=budget_lines)
+    budget_needs = BudgetNeedExpression.query.filter_by(project_id=project.id).order_by(BudgetNeedExpression.created_at.desc()).all()
+    return render_template("project_detail.html", project=project, budget_needs=budget_needs)
 
 
-@app.route("/projects/<int:project_id>/budget-lines/new", methods=["GET", "POST"])
+@app.route("/projects/<int:project_id>/budget-needs/new", methods=["GET", "POST"])
 @login_required
-def budget_line_new(project_id):
+def budget_need_new(project_id):
     project = db.session.get(Project, project_id)
     if not project or project.user_id != current_user.id:
         flash("Accès non autorisé.", "danger")
         return redirect(url_for("dashboard"))
     if request.method == "POST":
         label = request.form.get("label", "").strip()
-        amount_str = request.form.get("amount", "").strip()
+        amount_mco_str = request.form.get("amount_mco", "").strip() or "0"
+        amount_investment_str = request.form.get("amount_investment", "").strip() or "0"
         justification = request.form.get("justification", "").strip()
-        if not label or not amount_str:
-            flash("Le libellé et le montant sont obligatoires.", "danger")
+        if not label:
+            flash("Le libellé est obligatoire.", "danger")
         else:
             try:
-                amount = float(amount_str)
+                amount_mco = float(amount_mco_str)
+                amount_investment = float(amount_investment_str)
             except ValueError:
                 flash("Montant invalide.", "danger")
-                return render_template("budget_line_new.html", project=project)
-            bl = BudgetLine(label=label, amount=amount, justification=justification, project_id=project.id)
-            db.session.add(bl)
+                return render_template("budget_need_new.html", project=project)
+            if amount_mco == 0 and amount_investment == 0:
+                flash("Au moins un des deux montants (MCO ou Investissement) doit être renseigné.", "danger")
+                return render_template("budget_need_new.html", project=project)
+            bn = BudgetNeedExpression(label=label, amount_mco=amount_mco, amount_investment=amount_investment, justification=justification, project_id=project.id)
+            db.session.add(bn)
             db.session.flush()
 
             files = request.files.getlist("attachments")
@@ -262,13 +280,13 @@ def budget_line_new(project_id):
                     ext = os.path.splitext(original)[1]
                     stored = f"{uuid.uuid4().hex}{ext}"
                     f.save(os.path.join(app.config["UPLOAD_FOLDER"], stored))
-                    att = Attachment(filename=stored, original_name=original, budget_line_id=bl.id)
+                    att = Attachment(filename=stored, original_name=original, budget_need_id=bn.id)
                     db.session.add(att)
 
             db.session.commit()
-            flash("Ligne budgétaire ajoutée.", "success")
+            flash("Expression de besoin budgétaire ajoutée.", "success")
             return redirect(url_for("project_detail", project_id=project.id))
-    return render_template("budget_line_new.html", project=project)
+    return render_template("budget_need_new.html", project=project)
 
 
 @app.route("/uploads/<filename>")
@@ -317,28 +335,32 @@ def export_project(project_id):
 
     wb = Workbook()
     ws = wb.active
-    ws.title = "Lignes budgétaires"
+    ws.title = "Expressions de besoin"
 
-    headers = ["Libellé", "Montant (€)", "Justification", "Pièces jointes", "Date"]
+    headers = ["Libellé", "MCO (€)", "Investissement (€)", "Total (€)", "Justification", "Pièces jointes", "Date"]
     ws.append(headers)
     _style_header(ws, len(headers))
 
-    budget_lines = BudgetLine.query.filter_by(project_id=project.id).order_by(BudgetLine.created_at.desc()).all()
-    for bl in budget_lines:
-        attachments = ", ".join(att.original_name for att in bl.attachments)
-        ws.append([bl.label, bl.amount, bl.justification, attachments, bl.created_at.strftime("%d/%m/%Y")])
+    budget_needs = BudgetNeedExpression.query.filter_by(project_id=project.id).order_by(BudgetNeedExpression.created_at.desc()).all()
+    for bn in budget_needs:
+        attachments = ", ".join(att.original_name for att in bn.attachments)
+        ws.append([bn.label, bn.amount_mco, bn.amount_investment, bn.total_amount, bn.justification, attachments, bn.created_at.strftime("%d/%m/%Y")])
 
     # Total row
-    total_row = len(budget_lines) + 2
+    total_row = len(budget_needs) + 2
     ws.cell(row=total_row, column=1, value="TOTAL").font = Font(bold=True)
-    ws.cell(row=total_row, column=2, value=project.total_amount).font = Font(bold=True)
+    ws.cell(row=total_row, column=2, value=project.total_mco).font = Font(bold=True)
+    ws.cell(row=total_row, column=3, value=project.total_investment).font = Font(bold=True)
+    ws.cell(row=total_row, column=4, value=project.total_amount).font = Font(bold=True)
 
     # Column widths
     ws.column_dimensions["A"].width = 30
     ws.column_dimensions["B"].width = 15
-    ws.column_dimensions["C"].width = 50
-    ws.column_dimensions["D"].width = 30
-    ws.column_dimensions["E"].width = 12
+    ws.column_dimensions["C"].width = 18
+    ws.column_dimensions["D"].width = 15
+    ws.column_dimensions["E"].width = 50
+    ws.column_dimensions["F"].width = 30
+    ws.column_dimensions["G"].width = 12
 
     buf = io.BytesIO()
     wb.save(buf)
@@ -362,39 +384,45 @@ def export_supervisor():
     # Sheet 1: Summary
     ws_summary = wb.active
     ws_summary.title = "Synthèse"
-    headers = ["Projet", "Propriétaire", "Nb lignes", "Budget total (€)", "Date de création"]
+    headers = ["Projet", "Propriétaire", "Nb expressions", "MCO (€)", "Investissement (€)", "Budget total (€)", "Date de création"]
     ws_summary.append(headers)
     _style_header(ws_summary, len(headers))
 
     for p in projects:
-        ws_summary.append([p.name, p.owner.name, len(p.budget_lines), p.total_amount, p.created_at.strftime("%d/%m/%Y")])
+        ws_summary.append([p.name, p.owner.name, len(p.budget_needs), p.total_mco, p.total_investment, p.total_amount, p.created_at.strftime("%d/%m/%Y")])
 
     total_row = len(projects) + 2
     ws_summary.cell(row=total_row, column=1, value="TOTAL").font = Font(bold=True)
-    ws_summary.cell(row=total_row, column=4, value=sum(p.total_amount for p in projects)).font = Font(bold=True)
+    ws_summary.cell(row=total_row, column=4, value=sum(p.total_mco for p in projects)).font = Font(bold=True)
+    ws_summary.cell(row=total_row, column=5, value=sum(p.total_investment for p in projects)).font = Font(bold=True)
+    ws_summary.cell(row=total_row, column=6, value=sum(p.total_amount for p in projects)).font = Font(bold=True)
 
     ws_summary.column_dimensions["A"].width = 30
     ws_summary.column_dimensions["B"].width = 20
-    ws_summary.column_dimensions["C"].width = 12
-    ws_summary.column_dimensions["D"].width = 18
-    ws_summary.column_dimensions["E"].width = 15
+    ws_summary.column_dimensions["C"].width = 16
+    ws_summary.column_dimensions["D"].width = 15
+    ws_summary.column_dimensions["E"].width = 18
+    ws_summary.column_dimensions["F"].width = 18
+    ws_summary.column_dimensions["G"].width = 15
 
-    # Sheet 2: All budget lines
-    ws_detail = wb.create_sheet("Détail lignes budgétaires")
-    detail_headers = ["Projet", "Propriétaire", "Libellé", "Montant (€)", "Justification", "Date"]
+    # Sheet 2: All budget need expressions
+    ws_detail = wb.create_sheet("Détail expressions de besoin")
+    detail_headers = ["Projet", "Propriétaire", "Libellé", "MCO (€)", "Investissement (€)", "Total (€)", "Justification", "Date"]
     ws_detail.append(detail_headers)
     _style_header(ws_detail, len(detail_headers))
 
     for p in projects:
-        for bl in p.budget_lines:
-            ws_detail.append([p.name, p.owner.name, bl.label, bl.amount, bl.justification, bl.created_at.strftime("%d/%m/%Y")])
+        for bn in p.budget_needs:
+            ws_detail.append([p.name, p.owner.name, bn.label, bn.amount_mco, bn.amount_investment, bn.total_amount, bn.justification, bn.created_at.strftime("%d/%m/%Y")])
 
     ws_detail.column_dimensions["A"].width = 25
     ws_detail.column_dimensions["B"].width = 20
     ws_detail.column_dimensions["C"].width = 30
     ws_detail.column_dimensions["D"].width = 15
-    ws_detail.column_dimensions["E"].width = 50
-    ws_detail.column_dimensions["F"].width = 12
+    ws_detail.column_dimensions["E"].width = 18
+    ws_detail.column_dimensions["F"].width = 15
+    ws_detail.column_dimensions["G"].width = 50
+    ws_detail.column_dimensions["H"].width = 12
 
     buf = io.BytesIO()
     wb.save(buf)

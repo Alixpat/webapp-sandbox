@@ -11,8 +11,8 @@ Application web de gestion budgétaire construite avec Flask et PostgreSQL.
 
 - **User** : utilisateurs avec rôle (`user` ou `supervisor`)
 - **Project** : projets rattachés à un utilisateur
-- **BudgetLine** : lignes budgétaires (libellé, montant, justification) rattachées à un projet
-- **Attachment** : pièces jointes rattachées à une ligne budgétaire
+- **BudgetNeedExpression** : expressions de besoin budgétaire (libellé, montant MCO, montant investissement, justification) rattachées à un projet
+- **Attachment** : pièces jointes rattachées à une expression de besoin
 
 ## Lancer avec Docker Compose
 
