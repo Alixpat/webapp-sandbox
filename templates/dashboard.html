@@ -27,7 +27,7 @@
                                     <p class="fr-badge fr-badge--blue-ecume fr-badge--sm fr-badge--no-icon">{{ "{:,.2f}".format(project.total_amount).replace(",", " ") }} &euro;</p>
                                 </li>
                                 <li>
-                                    <p class="fr-badge fr-badge--sm fr-badge--no-icon">{{ project.budget_lines|length }} ligne{{ 's' if project.budget_lines|length != 1 else '' }}</p>
+                                    <p class="fr-badge fr-badge--sm fr-badge--no-icon">{{ project.budget_needs|length }} expression{{ 's' if project.budget_needs|length != 1 else '' }}</p>
                                 </li>
                             </ul>
                         </div>
