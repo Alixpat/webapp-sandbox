@@ -435,7 +435,71 @@ def export_supervisor():
 # Initialisation
 # ---------------------------------------------------------------------------
 
+def _migrate_old_schema():
+    """Migrate from old budget_lines schema to budget_need_expressions."""
+    from sqlalchemy import inspect as sa_inspect, text
+
+    inspector = sa_inspect(db.engine)
+    existing_tables = inspector.get_table_names()
+
+    if "budget_lines" not in existing_tables:
+        return  # No migration needed
+
+    with db.engine.begin() as conn:
+        # 1. Create the new table
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS budget_need_expressions (
+                id SERIAL PRIMARY KEY,
+                label VARCHAR(200) NOT NULL,
+                amount_mco FLOAT NOT NULL DEFAULT 0,
+                amount_investment FLOAT NOT NULL DEFAULT 0,
+                justification TEXT DEFAULT '',
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                project_id INTEGER NOT NULL REFERENCES projects(id)
+            )
+        """))
+
+        # 2. Migrate data (put old amount into amount_investment)
+        conn.execute(text("""
+            INSERT INTO budget_need_expressions (id, label, amount_mco, amount_investment, justification, created_at, project_id)
+            SELECT id, label, 0, amount, justification, created_at, project_id
+            FROM budget_lines
+            WHERE id NOT IN (SELECT id FROM budget_need_expressions)
+        """))
+
+        # 3. Update attachments FK column
+        att_columns = [c["name"] for c in inspector.get_columns("attachments")]
+        if "budget_line_id" in att_columns and "budget_need_id" not in att_columns:
+            conn.execute(text(
+                "ALTER TABLE attachments RENAME COLUMN budget_line_id TO budget_need_id"
+            ))
+            # Update FK constraint (PostgreSQL)
+            try:
+                conn.execute(text(
+                    "ALTER TABLE attachments DROP CONSTRAINT IF EXISTS attachments_budget_line_id_fkey"
+                ))
+                conn.execute(text(
+                    "ALTER TABLE attachments ADD CONSTRAINT attachments_budget_need_id_fkey "
+                    "FOREIGN KEY (budget_need_id) REFERENCES budget_need_expressions(id)"
+                ))
+            except Exception:
+                pass  # SQLite doesn't support DROP/ADD CONSTRAINT
+
+        # 4. Sync the serial sequence so new inserts get correct IDs (PostgreSQL)
+        try:
+            conn.execute(text(
+                "SELECT setval('budget_need_expressions_id_seq', "
+                "(SELECT COALESCE(MAX(id), 0) FROM budget_need_expressions))"
+            ))
+        except Exception:
+            pass  # SQLite has no sequences
+
+        # 5. Drop old table
+        conn.execute(text("DROP TABLE IF EXISTS budget_lines CASCADE"))
+
+
 with app.app_context():
+    _migrate_old_schema()
     db.create_all()
     seed_data()
 
