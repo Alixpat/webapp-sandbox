@@ -436,6 +436,7 @@ def export_supervisor():
 # ---------------------------------------------------------------------------
 
 with app.app_context():
+    db.drop_all()
     db.create_all()
     seed_data()
 
